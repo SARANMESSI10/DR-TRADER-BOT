@@ -7,7 +7,7 @@ load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hello BOSS! SARAH is awake and online 🚀")
+    await update.message.reply_text("Hello BOSS! SARAH is online 💥")
 
 app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
