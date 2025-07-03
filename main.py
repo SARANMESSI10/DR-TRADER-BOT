@@ -10,7 +10,8 @@ BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 bot = telegram.Bot(token=BOT_TOKEN)
 
 # Strategy logic (mock for now)
-from strategies.rsi import should_buy, should_sell
+print("Skipping RSI import for testing")
+
 
 @app.route("/", methods=["POST"])
 def webhook():
