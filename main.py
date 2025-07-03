@@ -1,39 +1,38 @@
 import os
-import asyncio
-from flask import Flask, request
+from dotenv import load_dotenv
+from flask import Flask
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-from dotenv import load_dotenv
 
-# Load .env variables
+# Load environment variables from .env file
 load_dotenv()
-TOKEN = os.getenv("BOT_TOKEN")
-WEBHOOK_URL = os.getenv("WEBHOOK_URL")  # e.g. https://your-bot-name.onrender.com
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
-# Flask setup
+# Flask app for keeping bot alive
 flask_app = Flask(__name__)
 
-# Telegram command
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hello BOSS 👑 — SARAH is live on Render!")
+@flask_app.route('/')
+def home():
+    return 'SARAH is alive and monitoring trades!'
 
-# Create Telegram bot application
+# Telegram command handler
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Hello BOSS! SARAH is online and fully operational.")
+
+# Build the telegram bot application
 telegram_app = Application.builder().token(TOKEN).build()
 telegram_app.add_handler(CommandHandler("start", start))
 
-# Telegram webhook endpoint
-@flask_app.route("/webhook", methods=["POST"])
-async def webhook():
-    update_data = request.get_json(force=True)
-    update = Update.de_json(update_data, telegram_app.bot)
-    await telegram_app.process_update(update)
-    return "ok", 200
-
-# Set the webhook when server starts
-@flask_app.before_first_request
-def setup_webhook():
-    asyncio.run(telegram_app.bot.set_webhook(WEBHOOK_URL + "/webhook"))
-
-# Run the Flask app
+# Run both Flask and Telegram bot
 if __name__ == "__main__":
+    import threading
+
+    # Run telegram bot in separate thread
+    def run_bot():
+        telegram_app.run_polling()
+
+    bot_thread = threading.Thread(target=run_bot)
+    bot_thread.start()
+
+    # Run Flask app (useful for keeping alive on Render)
     flask_app.run(host="0.0.0.0", port=10000)
