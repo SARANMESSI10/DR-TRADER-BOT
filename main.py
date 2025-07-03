@@ -1,38 +1,46 @@
+import logging
 import os
-from dotenv import load_dotenv
-from flask import Flask
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
+from flask import Flask
+from threading import Thread
+from strategies.rsi import check_rsi_signal
 
-# Load environment variables from .env file
-load_dotenv()
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+# Enable logging
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
-# Flask app for keeping bot alive
-flask_app = Flask(__name__)
+# Get Telegram token from environment variable
+TOKEN = os.getenv("TOKEN")
+if not TOKEN:
+    raise ValueError("Telegram bot TOKEN is not set in environment variables.")
 
-@flask_app.route('/')
+# Flask server to keep the bot alive (for Render and similar platforms)
+app = Flask(__name__)
+
+@app.route('/')
 def home():
-    return 'SARAH is alive and monitoring trades!'
+    return "DR-TRADER-BOT is running!"
 
-# Telegram command handler
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Hello BOSS! SARAH is online and fully operational.")
+def run_flask():
+    app.run(host='0.0.0.0', port=8080)
 
-# Build the telegram bot application
-telegram_app = Application.builder().token(TOKEN).build()
-telegram_app.add_handler(CommandHandler("start", start))
+# Telegram bot command
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text("Welcome to DR-TRADER-BOT! Type /trade to get trading advice.")
 
-# Run both Flask and Telegram bot
-if __name__ == "__main__":
-    import threading
+async def trade(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    signal = await check_rsi_signal()
+    await update.message.reply_text(signal)
 
-    # Run telegram bot in separate thread
-    def run_bot():
-        telegram_app.run_polling()
+if __name__ == '__main__':
+    # Start Flask server in background
+    Thread(target=run_flask).start()
 
-    bot_thread = threading.Thread(target=run_bot)
-    bot_thread.start()
-
-    # Run Flask app (useful for keeping alive on Render)
-    flask_app.run(host="0.0.0.0", port=10000)
+    # Start Telegram bot
+    telegram_app = Application.builder().token(TOKEN).build()
+    telegram_app.add_handler(CommandHandler("start", start))
+    telegram_app.add_handler(CommandHandler("trade", trade))
+    telegram_app.run_polling()
