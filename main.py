@@ -1,40 +1,38 @@
+from flask import Flask, request
+import telegram
 import os
-from flask import Flask
-from telegram.ext import Application, CommandHandler
-from dotenv import load_dotenv
-from strategies.rsi import check_rsi_signal
 
-# Load .env
-load_dotenv()
-TOKEN = os.getenv("TOKEN")
+# Set up Flask app
+app = Flask(__name__)
 
-flask_app = Flask(__name__)
+# Read bot token from environment variable
+BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+bot = telegram.Bot(token=BOT_TOKEN)
 
-@flask_app.route('/')
-def home():
-    return "Bot is running with RSI strategy!"
+# Your strategy logic (example: RSI)
+from strategies.rsi import should_buy, should_sell
 
-# /start command
-async def start(update, context):
-    await update.message.reply_text("Welcome to DR TRADER BOT 🧠📈\nUse /rsi to get RSI signal.")
+@app.route("/", methods=["POST"])
+def webhook():
+    update = telegram.Update.de_json(request.get_json(force=True), bot)
+    chat_id = update.message.chat.id
+    text = update.message.text.lower()
 
-# /rsi command
-async def rsi(update, context):
-    symbol = context.args[0] if context.args else "BTC-USD"
-    try:
-        signal = check_rsi_signal(symbol)
-        await update.message.reply_text(signal)
-    except Exception as e:
-        await update.message.reply_text(f"Error: {str(e)}")
+    # Basic commands
+    if "buy" in text and should_buy():
+        bot.send_message(chat_id=chat_id, text="✅ Buy Signal Triggered!")
+    elif "sell" in text and should_sell():
+        bot.send_message(chat_id=chat_id, text="❌ Sell Signal Triggered!")
+    else:
+        bot.send_message(chat_id=chat_id, text="⚠️ No action or unrecognized command.")
 
-# Start bot + Flask
-def start_bot():
-    app = Application.builder().token(TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("rsi", rsi))
-    app.run_polling()
+    return "ok"
 
+@app.route("/", methods=["GET", "HEAD"])
+def index():
+    return "SARAH Trading Bot is live."
+
+# 👇 Required for Render (uses production WSGI server)
 if __name__ == "__main__":
-    import threading
-    threading.Thread(target=start_bot).start()
-    flask_app.run(host="0.0.0.0", port=8080)
+    from waitress import serve
+    serve(app, host="0.0.0.0", port=10000)
