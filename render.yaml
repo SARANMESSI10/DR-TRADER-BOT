@@ -2,7 +2,6 @@ services:
   - type: web
     name: dr-trader-bot
     env: python
-    region: oregon
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "python3 main.py"
-    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python3 main.py
+    pythonVersion: 3.10
