@@ -1,14 +1,18 @@
 # main.py
 
 import threading
+import os
 import requests
 from flask import Flask
 from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from dotenv import load_dotenv
+
+# === LOAD ENVIRONMENT VARIABLES ===
+load_dotenv()
+TOKEN = os.getenv("BOT_TOKEN")
 
 # === TELEGRAM BOT SETUP ===
-TOKEN = "YOUR_TELEGRAM_BOT_TOKEN"  # Replace with your real token
-
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("SARAH is online, BOSS.")
 
@@ -26,7 +30,7 @@ def home():
     return 'SARAH is awake.'
 
 def run_flask():
-    flask_app.run(host='0.0.0.0', port=10000)  # Required for Render
+    flask_app.run(host='0.0.0.0', port=10000)
 
 # === RUN BOTH TOGETHER ===
 if __name__ == '__main__':
