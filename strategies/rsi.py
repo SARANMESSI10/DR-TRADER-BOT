@@ -1,21 +1,28 @@
 import yfinance as yf
+import pandas as pd
 
-def check_rsi_signal(symbol="AAPL"):
-    data = yf.download(symbol, period="14d", interval="1d")
-    close = data['Close']
+def calculate_rsi(data, period=14):
+    delta = data['Close'].diff()
+    gain = delta.where(delta > 0, 0)
+    loss = -delta.where(delta < 0, 0)
 
-    delta = close.diff()
-    gain = delta.clip(lower=0)
-    loss = -delta.clip(upper=0)
-    avg_gain = gain.rolling(window=14).mean().iloc[-1]
-    avg_loss = loss.rolling(window=14).mean().iloc[-1]
+    avg_gain = gain.rolling(window=period).mean()
+    avg_loss = loss.rolling(window=period).mean()
 
     rs = avg_gain / avg_loss
     rsi = 100 - (100 / (1 + rs))
+    return rsi
 
-    if rsi > 70:
-        return f"⚠️ {symbol} RSI = {rsi:.2f} → Overbought! Consider Selling."
-    elif rsi < 30:
-        return f"✅ {symbol} RSI = {rsi:.2f} → Oversold! Consider Buying."
+def check_rsi_signal(symbol='BTC-USD'):
+    df = yf.download(symbol, period="1mo", interval="1h")
+    df.dropna(inplace=True)
+    df['RSI'] = calculate_rsi(df)
+
+    latest_rsi = df['RSI'].iloc[-1]
+    
+    if latest_rsi < 30:
+        return f"📉 RSI is {latest_rsi:.2f}: *Oversold* signal on {symbol}. Consider Buying."
+    elif latest_rsi > 70:
+        return f"📈 RSI is {latest_rsi:.2f}: *Overbought* signal on {symbol}. Consider Selling."
     else:
-        return f"ℹ️ {symbol} RSI = {rsi:.2f} → Neutral."
+        return f"⚖️ RSI is {latest_rsi:.2f}: Neutral zone on {symbol}."
