@@ -1,7 +1,12 @@
 services:
   - type: web
-    name: dr-trader-bot
+    name: telegram-bot
     env: python
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: python3 main.py
-    pythonVersion: 3.10
+    envVars:
+      - key: BOT_TOKEN
+        value: 7265701130:AAGbl3_xZFM_1oPX_ZIwfJFKWz5RIk8s8wM
+      - key: WEBHOOK_URL
+        value: https://dr-trader-bot.onrender.com
