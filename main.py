@@ -1,46 +1,28 @@
-import logging
 import os
+import logging
 from telegram import Update
 from telegram.ext import Application, CommandHandler, ContextTypes
-from flask import Flask
-from threading import Thread
-from strategies.rsi import check_rsi_signal
+from dotenv import load_dotenv
 
-# Enable logging
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO
-)
-logger = logging.getLogger(__name__)
+# Load environment variables
+load_dotenv()
+TOKEN = os.getenv("BOT_TOKEN")
 
-# Get Telegram token from environment variable
-TOKEN = os.getenv("TOKEN")
-if not TOKEN:
-    raise ValueError("Telegram bot TOKEN is not set in environment variables.")
+# Set up logging
+logging.basicConfig(level=logging.INFO)
 
-# Flask server to keep the bot alive (for Render and similar platforms)
-app = Flask(__name__)
+# Define your handlers
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Hello BOSS! SARAH RSI bot is online. Send /check to get RSI signal.")
 
-@app.route('/')
-def home():
-    return "DR-TRADER-BOT is running!"
+async def check_rsi(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    from strategies.rsi import check_rsi_signal
+    result = check_rsi_signal("AAPL")  # You can change symbol or parse from user input
+    await update.message.reply_text(result)
 
-def run_flask():
-    app.run(host='0.0.0.0', port=8080)
-
-# Telegram bot command
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text("Welcome to DR-TRADER-BOT! Type /trade to get trading advice.")
-
-async def trade(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    signal = await check_rsi_signal()
-    await update.message.reply_text(signal)
-
-if __name__ == '__main__':
-    # Start Flask server in background
-    Thread(target=run_flask).start()
-
-    # Start Telegram bot
-    telegram_app = Application.builder().token(TOKEN).build()
-    telegram_app.add_handler(CommandHandler("start", start))
-    telegram_app.add_handler(CommandHandler("trade", trade))
-    telegram_app.run_polling()
+# Start the bot using polling (no Updater)
+if __name__ == "__main__":
+    app = Application.builder().token(TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("check", check_rsi))
+    app.run_polling()
