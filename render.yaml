@@ -1,12 +1,10 @@
 services:
   - type: web
-    name: trading-bot
+    name: dr-trader-bot
     env: python
+    region: oregon
     buildCommand: "pip install -r requirements.txt"
     startCommand: "python main.py"
-    envVars:
-      - key: BOT_TOKEN
-        sync: false
-      - key: STOCK_API_KEY
-        sync: false
+    plan: free
+
 
